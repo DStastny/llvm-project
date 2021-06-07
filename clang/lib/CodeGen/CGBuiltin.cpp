@@ -15464,6 +15464,13 @@ Value *CodeGenFunction::EmitPPCBuiltinExpr(unsigned BuiltinID,
     return Builder.CreateExtractElement(Unpacked, Index);
   }
 
+  case PPC::BI__builtin_ppc_sthcx: {
+    llvm::Function *F = CGM.getIntrinsic(Intrinsic::ppc_sthcx);
+    Ops[0] = Builder.CreateBitCast(Ops[0], Int8PtrTy);
+    Ops[1] = Builder.CreateSExt(Ops[1], Int32Ty);
+    return Builder.CreateCall(F, Ops);
+  }
+
   // The PPC MMA builtins take a pointer to a __vector_quad as an argument.
   // Some of the MMA instructions accumulate their result into an existing
   // accumulator whereas the others generate a new accumulator. So we need to

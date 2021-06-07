@@ -50,3 +50,65 @@ entry:
   %1 = tail call i32 @llvm.ppc.stwcx(i8* %0, i32 %b)
   ret i32 %1
 }
+
+declare i32 @llvm.ppc.sthcx(i8*, i32)
+define dso_local signext i32 @test_sthcx(i16* %a, i16 signext %val) {
+; CHECK-64-LABEL: test_sthcx:
+; CHECK-64:       # %bb.0: # %entry
+; CHECK-64-NEXT:    sthcx. 4, 0, 3
+; CHECK-64-NEXT:    mfocrf 3, 128
+; CHECK-64-NEXT:    srwi 3, 3, 28
+; CHECK-64-NEXT:    extsw 3, 3
+; CHECK-64-NEXT:    blr
+;
+; CHECK-32-LABEL: test_sthcx:
+; CHECK-32:       # %bb.0: # %entry
+; CHECK-32-NEXT:    sthcx. 4, 0, 3
+; CHECK-32-NEXT:    mfocrf 3, 128
+; CHECK-32-NEXT:    srwi 3, 3, 28
+; CHECK-32-NEXT:    blr
+entry:
+  %0 = bitcast i16* %a to i8*
+  %1 = sext i16 %val to i32
+  %2 = tail call i32 @llvm.ppc.sthcx(i8* %0, i32 %1)
+  ret i32 %2
+}
+
+declare i32 @llvm.ppc.lharx(i8*)
+define dso_local signext i16 @test_lharx(i16* %a) {
+; CHECK-64-LABEL: test_lharx:
+; CHECK-64:       # %bb.0: # %entry
+; CHECK-64-NEXT:    lharx 3, 0, 3
+; CHECK-64-NEXT:    extsh 3, 3
+; CHECK-64-NEXT:    blr
+;
+; CHECK-32-LABEL: test_lharx:
+; CHECK-32:       # %bb.0: # %entry
+; CHECK-32-NEXT:    lharx 3, 0, 3
+; CHECK-32-NEXT:    extsh 3, 3
+; CHECK-32-NEXT:    blr
+entry:
+  %0 = bitcast i16* %a to i8*
+  %1 = tail call i32 @llvm.ppc.lharx(i8* %0)
+  %conv = trunc i32 %1 to i16
+  ret i16 %conv
+}
+
+declare i32 @llvm.ppc.lbarx(i8*)
+define dso_local zeroext i8 @test_lbarx(i8* %a) {
+; CHECK-64-LABEL: test_lbarx:
+; CHECK-64:       # %bb.0: # %entry
+; CHECK-64-NEXT:    lbarx 3, 0, 3
+; CHECK-64-NEXT:    clrldi 3, 3, 56
+; CHECK-64-NEXT:    blr
+;
+; CHECK-32-LABEL: test_lbarx:
+; CHECK-32:       # %bb.0: # %entry
+; CHECK-32-NEXT:    lbarx 3, 0, 3
+; CHECK-32-NEXT:    clrlwi 3, 3, 24
+; CHECK-32-NEXT:    blr
+entry:
+  %0 = tail call i32 @llvm.ppc.lbarx(i8* %a)
+  %conv = trunc i32 %0 to i8
+  ret i8 %conv
+}
