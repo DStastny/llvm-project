@@ -9,6 +9,9 @@
 //  This file implements the operating system Process concept.
 //
 //===----------------------------------------------------------------------===//
+// Prevent namespace collisions with struct Process and class Process
+
+
 
 #include "llvm/Support/Process.h"
 #include "llvm/ADT/STLExtras.h"
@@ -22,8 +25,10 @@
 
 #include <stdlib.h> // for _Exit
 
-using namespace llvm;
-using namespace sys;
+
+
+namespace llvm {
+namespace  sys {
 
 //===----------------------------------------------------------------------===//
 //=== WARNING: Implementation here must contain only TRULY operating system
@@ -102,10 +107,19 @@ bool Process::AreCoreFilesPrevented() { return coreFilesPrevented; }
     ::exit(RetCode);
 }
 
+
+} // namespace sys
+} // namespace llvm
+
 // Include the platform-specific parts of this class.
 #ifdef LLVM_ON_UNIX
-#include "Unix/Process.inc"
+#ifdef __amigaos__
+  #include "AmigaOS/Process.inc"
+#else
+  #include "Unix/Process.inc"
+#endif
 #endif
 #ifdef _WIN32
 #include "Windows/Process.inc"
 #endif
+

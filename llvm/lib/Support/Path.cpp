@@ -1173,7 +1173,11 @@ const char *mapped_file_region::const_data() const {
 
 // Include the truly platform-specific parts.
 #if defined(LLVM_ON_UNIX)
+#if defined(__amigaos__)
+#include "AmigaOS/Path.inc"
+#else
 #include "Unix/Path.inc"
+#endif
 #endif
 #if defined(_WIN32)
 #include "Windows/Path.inc"

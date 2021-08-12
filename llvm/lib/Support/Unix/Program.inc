@@ -93,7 +93,13 @@ ErrorOr<std::string> sys::findProgramByName(StringRef Name,
   return errc::no_such_file_or_directory;
 }
 
-static bool RedirectIO(Optional<StringRef> Path, int FD, std::string* ErrMsg) {
+/*
+#define STDIN_FILENO	0
+#define STDOUT_FILENO	1
+#define STDERR_FILENO	2
+*/
+
+static bool RedirectIO(Optional<StringRef> Path, int FileNo, std::string* ErrMsg) {
   if (!Path) // Noop
     return false;
   std::string File;

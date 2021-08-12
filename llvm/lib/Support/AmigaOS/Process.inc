@@ -1,4 +1,4 @@
-//===- Unix/Process.cpp - Unix Process Implementation --------- -*- C++ -*-===//
+//===- AmigaOS/Process.inc - AmigaOS Process Implementation --------- -*- C++ -*-===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -6,54 +6,34 @@
 //
 //===----------------------------------------------------------------------===//
 //
-// This file provides the generic Unix implementation of the Process class.
+// This file provides the generic AmigaOS implementation of the Process class.
 //
 //===----------------------------------------------------------------------===//
 
-#include "Unix.h"
+#include "AmigaOS.h"
 #include "llvm/ADT/Hashing.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Config/config.h"
 #include "llvm/Support/ManagedStatic.h"
 #include <mutex>
-#if HAVE_FCNTL_H
+
 #include <fcntl.h>
-#endif
-#ifdef HAVE_SYS_TIME_H
 #include <sys/time.h>
-#endif
-#ifdef HAVE_SYS_RESOURCE_H
-#include <sys/resource.h>
-#endif
-#ifdef HAVE_SYS_STAT_H
 #include <sys/stat.h>
-#endif
-#if HAVE_SIGNAL_H
 #include <signal.h>
-#endif
-#if defined(HAVE_MALLINFO) || defined(HAVE_MALLINFO2)
-#include <malloc.h>
-#endif
-#if defined(HAVE_MALLCTL)
-#include <malloc_np.h>
-#endif
-#ifdef HAVE_MALLOC_MALLOC_H
-#include <malloc/malloc.h>
-#endif
-#ifdef HAVE_SYS_IOCTL_H
-#  include <sys/ioctl.h>
-#endif
-#ifdef HAVE_TERMIOS_H
-#  include <termios.h>
-#endif
+
+
+#include <sys/ioctl.h>
+#include <termios.h>
+#include <dos.h>
 
 //===----------------------------------------------------------------------===//
-//=== WARNING: Implementation here must contain only generic UNIX code that
-//===          is guaranteed to work on *all* UNIX variants.
+//=== WARNING: Implementation here must contain only generic AmigaOS code that
+//===          is guaranteed to work on *all* AmigaOS variants.
 //===----------------------------------------------------------------------===//
 
 namespace llvm {
-namespace sys  {
+namespace sys {
 
 static std::pair<std::chrono::microseconds, std::chrono::microseconds> getRUsageTimes() {
 #if defined(HAVE_GETRUSAGE)
@@ -72,53 +52,29 @@ Process::Pid Process::getProcessId() {
   return Pid(::getpid());
 }
 
-// On Cygwin, getpagesize() returns 64k(AllocationGranularity) and
-// offset in mmap(3) should be aligned to the AllocationGranularity.
-Expected<unsigned> Process::getPageSize() {
-#if defined(HAVE_GETPAGESIZE)
-  static const int page_size = ::getpagesize();
-#elif defined(HAVE_SYSCONF)
-  static long page_size = ::sysconf(_SC_PAGE_SIZE);
-#else
-#error Cannot get the page size on this machine
-#endif
-  if (page_size == -1)
-    return errorCodeToError(std::error_code(errno, std::generic_category()));
 
-  return static_cast<unsigned>(page_size);
+Expected<unsigned> Process::getPageSize() {
+
+  uint32 pageSizeBits = 0; 
+  uint32 pageSize = 0;
+
+  IExec->GetCPUInfoTags(GCIT_ExecPageSize, &pageSizeBits, TAG_END);
+  for (uint32 i = 0; i < 32; i++)
+  {        
+      if (pageSizeBits & (1UL << i))
+      {
+        
+          pageSize = (1UL << i);
+          break;
+      }
+  }
+  return pageSize;
 }
 
 size_t Process::GetMallocUsage() {
-#if defined(HAVE_MALLINFO2)
-  struct mallinfo2 mi;
-  mi = ::mallinfo2();
-  return mi.uordblks;
-#elif defined(HAVE_MALLINFO)
-  struct mallinfo mi;
-  mi = ::mallinfo();
-  return mi.uordblks;
-#elif defined(HAVE_MALLOC_ZONE_STATISTICS) && defined(HAVE_MALLOC_MALLOC_H)
-  malloc_statistics_t Stats;
-  malloc_zone_statistics(malloc_default_zone(), &Stats);
-  return Stats.size_in_use;   // darwin
-#elif defined(HAVE_MALLCTL)
-  size_t alloc, sz;
-  sz = sizeof(size_t);
-  if (mallctl("stats.allocated", &alloc, &sz, NULL, 0) == 0)
-    return alloc;
-  return 0;
-#elif defined(HAVE_SBRK)
-  // Note this is only an approximation and more closely resembles
-  // the value returned by mallinfo in the arena field.
-  static char *StartOfMemory = reinterpret_cast<char*>(::sbrk(0));
-  char *EndOfMemory = (char*)sbrk(0);
-  if (EndOfMemory != ((char*)-1) && StartOfMemory != ((char*)-1))
-    return EndOfMemory - StartOfMemory;
-  return 0;
-#else
-#warning Cannot get malloc info on this platform
-  return 0;
-#endif
+  size_t current_memory;
+  __get_mem_stats(&current_memory, NULL, NULL, NULL);
+  return current_memory;
 }
 
 void Process::GetTimeUsage(TimePoint<> &elapsed, std::chrono::nanoseconds &user_time,
@@ -127,49 +83,10 @@ void Process::GetTimeUsage(TimePoint<> &elapsed, std::chrono::nanoseconds &user_
   std::tie(user_time, sys_time) = getRUsageTimes();
 }
 
-#if defined(HAVE_MACH_MACH_H) && !defined(__GNU__)
-#include <mach/mach.h>
-#endif
-
 // Some LLVM programs such as bugpoint produce core files as a normal part of
 // their operation. To prevent the disk from filling up, this function
 // does what's necessary to prevent their generation.
 void Process::PreventCoreFiles() {
-#if HAVE_SETRLIMIT
-  struct rlimit rlim;
-  rlim.rlim_cur = rlim.rlim_max = 0;
-  setrlimit(RLIMIT_CORE, &rlim);
-#endif
-
-#if defined(HAVE_MACH_MACH_H) && !defined(__GNU__)
-  // Disable crash reporting on Mac OS X 10.0-10.4
-
-  // get information about the original set of exception ports for the task
-  mach_msg_type_number_t Count = 0;
-  exception_mask_t OriginalMasks[EXC_TYPES_COUNT];
-  exception_port_t OriginalPorts[EXC_TYPES_COUNT];
-  exception_behavior_t OriginalBehaviors[EXC_TYPES_COUNT];
-  thread_state_flavor_t OriginalFlavors[EXC_TYPES_COUNT];
-  kern_return_t err =
-    task_get_exception_ports(mach_task_self(), EXC_MASK_ALL, OriginalMasks,
-                             &Count, OriginalPorts, OriginalBehaviors,
-                             OriginalFlavors);
-  if (err == KERN_SUCCESS) {
-    // replace each with MACH_PORT_NULL.
-    for (unsigned i = 0; i != Count; ++i)
-      task_set_exception_ports(mach_task_self(), OriginalMasks[i],
-                               MACH_PORT_NULL, OriginalBehaviors[i],
-                               OriginalFlavors[i]);
-  }
-
-  // Disable crash reporting on Mac OS X 10.5
-  signal(SIGABRT, _exit);
-  signal(SIGILL,  _exit);
-  signal(SIGFPE,  _exit);
-  signal(SIGSEGV, _exit);
-  signal(SIGBUS,  _exit);
-#endif
-
   coreFilesPrevented = true;
 }
 
@@ -234,11 +151,17 @@ std::error_code Process::FixupStandardFileDescriptors() {
   return std::error_code();
 }
 
+// from BSD
+#define SIG_FILL(set)  (set) = 0x7fffffff
+
 std::error_code Process::SafelyCloseFileDescriptor(int FD) {
   // Create a signal set filled with *all* signals.
   sigset_t FullSet, SavedSet;
-  if (sigfillset(&FullSet) < 0 || sigfillset(&SavedSet) < 0)
-    return std::error_code(errno, std::generic_category());
+  SIG_FILL(FullSet);
+  SIG_FILL(SavedSet);
+
+  //if (sigfillset(&FullSet) < 0 || sigfillset(&SavedSet) < 0)
+  //  return std::error_code(errno, std::generic_category());
 
   // Atomically swap our current signal mask with a full mask.
 #if LLVM_ENABLE_THREADS
@@ -462,7 +385,6 @@ unsigned llvm::sys::Process::GetRandomNumber() {
 }
 
 [[noreturn]] void Process::ExitNoCleanup(int RetCode) { _Exit(RetCode); }
-
 
 } // namespace sys
 } // namespace llvm

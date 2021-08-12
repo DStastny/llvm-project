@@ -34,9 +34,12 @@ namespace sys {
   const char EnvPathSeparator = ';';
 #endif
 
-#if defined(_WIN32)
+#if defined(_WIN32) 
   typedef unsigned long procid_t; // Must match the type of DWORD on Windows.
   typedef void *process_t;        // Must match the type of HANDLE on Windows.
+#elif defined(__amigaos__)  
+  typedef unsigned long procid_t; // Must match the type of uint32 on AmigaOS.
+  typedef void *process_t;        // Must match the type of APTR on AmigaOS.
 #else
   typedef ::pid_t procid_t;
   typedef procid_t process_t;
@@ -54,6 +57,11 @@ namespace sys {
 
     ProcessInfo();
   };
+
+#if defined(__amigaos__)  
+    // Must be used to free Process if not Waited
+    int CloseProcess(ProcessInfo &PI);
+#endif
 
   /// This struct encapsulates information about a process execution.
   struct ProcessStatistics {

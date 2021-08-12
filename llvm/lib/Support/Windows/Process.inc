@@ -41,7 +41,9 @@
 #  define _HEAPOK (-2)
 #endif
 
-using namespace llvm;
+namespace llvm {
+namespace sys {
+
 
 Process::Pid Process::getProcessId() {
   static_assert(sizeof(Pid) >= sizeof(DWORD),
@@ -508,3 +510,6 @@ bool llvm::RunningWindows8OrGreater() {
   TerminateProcess(GetCurrentProcess(), RetCode);
   llvm_unreachable("TerminateProcess doesn't return");
 }
+
+} // namespace sys
+} // namespace llvm

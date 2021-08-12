@@ -1,0 +1,108 @@
+
+//===- llvm/Support/AmigaOS/AmigaOS.h - Common Unix Include File -------*- C++ -*-===//
+//
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+//
+//===----------------------------------------------------------------------===//
+//
+// This file defines things specific to Unix implementations.
+//
+//===----------------------------------------------------------------------===//
+
+#ifndef LLVM_LIB_SUPPORT_AMIGAOS_AMIGAOS_H
+#define LLVM_LIB_SUPPORT_AMIGAOS_AMIGAOS_H
+
+//===----------------------------------------------------------------------===//
+//=== WARNING: Implementation here must contain only generic AmigaOS code that
+//===          is guaranteed to work on all AmigaOS variants.
+//===----------------------------------------------------------------------===//
+#include "llvm/Support/AmigaOS/AmigaOSSupport.h"
+
+#include "llvm/Config/config.h"
+#include "llvm/Support/Chrono.h"
+#include "llvm/Support/Errno.h"
+#include "llvm/Support/ErrorHandling.h"
+#include <algorithm>
+#include <assert.h>
+#include <cerrno>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <string>
+#include <sys/types.h>
+#include <unistd.h>
+#include <sys/time.h>
+#include <time.h>
+#include <dlfcn.h>
+#include <fcntl.h>
+#include <dos.h>
+
+
+/// This function builds an error message into \p ErrMsg using the \p prefix
+/// string and the Unix error number given by \p errnum. If errnum is -1, the
+/// default then the value of errno is used.
+/// Make an error message
+///
+/// If the error number can be converted to a string, it will be
+/// separated from prefix by ": ".
+static inline bool MakeErrMsg(
+  std::string* ErrMsg, const std::string& prefix, int errnum = -1) {
+  if (!ErrMsg)
+    return true;
+  if (errnum == -1)
+    errnum = errno;
+  *ErrMsg = prefix + ": " + llvm::sys::StrError(errnum);
+  return true;
+}
+
+
+static inline int MapAmigaIOError()
+{
+    return (int)__translate_io_error_to_errno(IDOS->IoErr());
+}
+
+// Include StrError(errnum) in a fatal error message.
+[[noreturn]] static inline void ReportErrnumFatal(const char *Msg, int errnum) {
+  std::string ErrMsg;
+  MakeErrMsg(&ErrMsg, Msg, errnum);
+  llvm::report_fatal_error(ErrMsg);
+}
+
+namespace llvm {
+namespace sys {
+
+/// Convert a struct timeval to a duration. Note that timeval can be used both
+/// as a time point and a duration. Be sure to check what the input represents.
+inline std::chrono::microseconds toDuration(const struct timeval &TV) {
+  return std::chrono::seconds(TV.tv_sec) +
+         std::chrono::microseconds(TV.tv_usec);
+}
+
+/// Convert a time point to struct timespec.
+inline struct timespec toTimeSpec(TimePoint<> TP) {
+  using namespace std::chrono;
+
+  struct timespec RetVal;
+  RetVal.tv_sec = toTimeT(TP);
+  RetVal.tv_nsec = (TP.time_since_epoch() % seconds(1)).count();
+  return RetVal;
+}
+
+/// Convert a time point to struct timeval.
+inline struct timeval toTimeVal(TimePoint<std::chrono::microseconds> TP) {
+  using namespace std::chrono;
+
+  struct timeval RetVal;
+  RetVal.tv_sec = toTimeT(TP);
+  RetVal.tv_usec = (TP.time_since_epoch() % seconds(1)).count();
+  return RetVal;
+}
+
+} // namespace sys
+} // namespace llvm
+
+
+
+#endif

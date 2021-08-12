@@ -100,7 +100,11 @@ void sys::printArg(raw_ostream &OS, StringRef Arg, bool Quote) {
 
 // Include the platform-specific parts of this class.
 #ifdef LLVM_ON_UNIX
-#include "Unix/Program.inc"
+#if defined(__amigaos__)
+    #include "AmigaOS/Program.inc"
+#else
+    #include "Unix/Program.inc"
+#endif    
 #endif
 #ifdef _WIN32
 #include "Windows/Program.inc"

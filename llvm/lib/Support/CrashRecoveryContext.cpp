@@ -180,6 +180,9 @@ CrashRecoveryContext::unregisterCleanup(CrashRecoveryContextCleanup *cleanup) {
   delete cleanup;
 }
 
+
+
+
 #if defined(_MSC_VER)
 
 #include <windows.h> // for GetExceptionInformation
@@ -328,7 +331,18 @@ static void uninstallExceptionOrSignalHandlers() {
   }
 }
 
-#else // !_WIN32
+#elif defined(__amigaos__)
+#include "llvm/Support/AmigaOS/AmigaOSSupport.h"
+static void installExceptionOrSignalHandlers() {
+  NOTIMPLEMENTED;
+}
+
+static void uninstallExceptionOrSignalHandlers() {
+  NOTIMPLEMENTED;
+}
+
+
+#else // !_WIN32 !__amigaos__
 
 // Generic POSIX implementation.
 //
@@ -452,6 +466,8 @@ bool CrashRecoveryContext::throwIfCrash(int RetCode) {
   if (Code != 0xC && Code != 8)
     return false;
   ::RaiseException(RetCode, 0, 0, NULL);
+#elif defined(__amigaos__)  
+  NOTIMPLEMENTED;
 #else
   // On Unix, signals are represented by return codes of 128 or higher.
   // Exit code 128 is a reserved value and should not be raised as a signal.
