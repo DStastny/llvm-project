@@ -39,7 +39,11 @@ void ThreadLocalImpl::removeInstance() {
 }
 }
 #elif defined(LLVM_ON_UNIX)
+#if defined(_amigaos__)
+#include "AmigaOS/ThreadLocal.inc"
+#else
 #include "Unix/ThreadLocal.inc"
+#endif
 #elif defined( _WIN32)
 #include "Windows/ThreadLocal.inc"
 #else

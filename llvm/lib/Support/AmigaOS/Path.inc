@@ -319,6 +319,8 @@ static void expandTildeExpr(SmallVectorImpl<char> &Path) {
     return;
   }
 
+/*** -lnet is not linked by clib2 without chaning cmake to add cant figure out
+ * 
   // This is a string of the form ~username/, look up this user's entry in the
   // password database.
   struct passwd *Entry = nullptr;
@@ -334,6 +336,7 @@ static void expandTildeExpr(SmallVectorImpl<char> &Path) {
   Path.clear();
   Path.append(Entry->pw_dir, Entry->pw_dir + strlen(Entry->pw_dir));
   llvm::sys::path::append(Path, Storage);
+**/
 }
 
 
@@ -874,11 +877,13 @@ namespace path {
 
 bool home_directory(SmallVectorImpl<char> &result) {
   char *RequestedDir = getenv("HOME");
+/****  
   if (!RequestedDir) {
     struct passwd *pw = getpwuid(getuid());
     if (pw && pw->pw_dir)
       RequestedDir = pw->pw_dir;
   }
+*/  
   if (!RequestedDir)
     return false;
 

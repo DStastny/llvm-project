@@ -445,6 +445,32 @@ ChildProcessList::WaitStatus ChildProcessList::WaitForProcess(ProcessHandle *Han
 
 ProcessInfo::ProcessInfo() : Pid(0), Process(NULL), ReturnCode(0) {}
 
+ErrorOr<std::string> sys::findProgramByName(StringRef Name,
+                                            ArrayRef<StringRef> Paths) {
+  assert(!Name.empty() && "Must have a name!");
+  // Use the given path verbatim if it contains any slashes; this matches
+  // the behavior of sh(1) and friends.
+  if (Name.find('/') != StringRef::npos) return std::string(Name);
+
+  SmallVector<StringRef, 16> EnvironmentPaths;
+  if (Paths.empty())
+    if (const char *PathEnv = std::getenv("PATH")) {
+      SplitString(PathEnv, EnvironmentPaths, ":");
+      Paths = EnvironmentPaths;
+    }
+
+  for (auto Path : Paths) {
+    if (Path.empty())
+      continue;
+
+    // Check to see if this first directory contains the executable...
+    SmallString<128> FilePath(Path);
+    sys::path::append(FilePath, Name);
+    if (sys::fs::can_execute(FilePath.c_str()))
+      return std::string(FilePath.str());  // Found the executable!
+  }
+  return errc::no_such_file_or_directory;
+}
 
 
 ProcessInfo llvm::sys::Wait(const ProcessInfo &PI, unsigned SecondsToWait,
@@ -484,6 +510,32 @@ ProcessInfo llvm::sys::Wait(const ProcessInfo &PI, unsigned SecondsToWait,
     FUNCEXIT;
     return WaitResult;
 }
+
+std::error_code llvm::sys::ChangeStdinMode(fs::OpenFlags Flags){
+  if (!(Flags & fs::OF_Text))
+    return ChangeStdinToBinary();
+  return std::error_code();
+}
+
+std::error_code llvm::sys::ChangeStdoutMode(fs::OpenFlags Flags){
+  if (!(Flags & fs::OF_Text))
+    return ChangeStdoutToBinary();
+  return std::error_code();
+}
+
+std::error_code llvm::sys::ChangeStdinToBinary() {
+  // Do nothing, as Unix doesn't differentiate between text and binary.
+  return std::error_code();
+}
+
+std::error_code llvm::sys::ChangeStdoutToBinary() {
+  // Do nothing, as Unix doesn't differentiate between text and binary.
+  return std::error_code();
+}
+
+
+
+
 
 std::string static flattenArguments(ArrayRef<StringRef> Args) {
    std::string Command;

@@ -248,7 +248,9 @@ static bool printSymbolizedStackTrace(StringRef Argv0, void **StackTrace,
 
 // Include the platform-specific parts of this class.
 #ifdef LLVM_ON_UNIX
-#include "Unix/Signals.inc"
+#if defined(__amigaos__)
+#include "AmigaOS/Signals.inc"
+#endif
 #endif
 #ifdef _WIN32
 #include "Windows/Signals.inc"
