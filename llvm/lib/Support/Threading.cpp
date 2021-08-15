@@ -71,8 +71,8 @@ unsigned llvm::ThreadPoolStrategy::compute_thread_count() const {
 
 // Include the platform-specific parts of this class.
 #ifdef LLVM_ON_UNIX
-#ifdef (__amigaos__)
-#include "Unix/Threading.inc"
+#if defined(__amigaos__)
+#include "AmigaOS/Threading.inc"
 #else
 #include "Unix/Threading.inc"
 #endif

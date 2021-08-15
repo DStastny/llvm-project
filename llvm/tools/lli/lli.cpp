@@ -75,6 +75,14 @@
 #endif
 #endif
 
+#ifndef DEBUG
+#define DEBUG
+#endif
+#include <llvm/Support/AmigaOS/AmigaOSSupport.h>
+
+
+
+
 using namespace llvm;
 
 static codegen::RegisterCodeGenFlags CGF;
@@ -424,33 +432,41 @@ void disallowOrcOptions();
 //
 int main(int argc, char **argv, char * const *envp) {
   InitLLVM X(argc, argv);
-
+DWARNING("After Init!\n");
   if (argc > 1)
     ExitOnErr.setBanner(std::string(argv[0]) + ": ");
 
   // If we have a native target, initialize it to ensure it is linked in and
   // usable by the JIT.
   InitializeNativeTarget();
+DWARNING("InitializeNativeTarget!\n");  
   InitializeNativeTargetAsmPrinter();
+DWARNING("InitializeNativeTargetAsmPrinter!\n");    
   InitializeNativeTargetAsmParser();
-
+DWARNING("ParseCommandLineOptions!\n");    
   cl::ParseCommandLineOptions(argc, argv,
                               "llvm interpreter & dynamic compiler\n");
-
+DWARNING("After!\n"); 
   // If the user doesn't want core files, disable them.
   if (DisableCoreFiles)
     sys::Process::PreventCoreFiles();
-
+DWARNING("Before loadDylibs!\n");   
   ExitOnErr(loadDylibs());
-
+DWARNING("Before Afterlibs!\n");   
   if (UseJITKind == JITKind::MCJIT)
+  {
+    DWARNING("disallowOrcOptions!\n");   
     disallowOrcOptions();
-  else
+  }
+  else {
+DWARNING("Target Tripple:%s\n",TargetTriple.c_str());      
+    DWARNING("runOrcJIT!\n");   
     return runOrcJIT(argv[0]);
+  }
 
   // Old lli implementation based on ExecutionEngine and MCJIT.
   LLVMContext Context;
-
+DWARNING("Load the bitcode!\n"); 
   // Load the bitcode...
   SMDiagnostic Err;
   std::unique_ptr<Module> Owner = parseIRFile(InputFile, Err, Context);
@@ -471,6 +487,9 @@ int main(int argc, char **argv, char * const *envp) {
                           ": bitcode didn't read correctly: ");
     ExitOnErr(Mod->materializeAll());
   }
+DWARNING("Engine Builder!\n"); 
+
+DWARNING("Target Tripple:%s\n",TargetTriple.c_str());
 
   std::string ErrorMsg;
   EngineBuilder builder(std::move(Owner));
@@ -1099,7 +1118,7 @@ void disallowOrcOptions() {
 }
 
 std::unique_ptr<orc::shared::FDRawByteChannel> launchRemote() {
-#ifndef LLVM_ON_UNIX
+#if !defined(LLVM_ON_UNIX) || defined(__amigaos__)
   llvm_unreachable("launchRemote not supported on non-Unix platforms");
 #else
   int PipeFD[2][2];

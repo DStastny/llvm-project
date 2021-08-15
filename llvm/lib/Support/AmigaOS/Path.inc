@@ -645,7 +645,7 @@ static int nativeOpenFlags(CreationDisposition Disp, OpenFlags Flags,
 
   if (!(Flags & OF_ChildInherit))
   {
-    DWARNING("O_CLOEXEC Not supported",0);
+    //DWARNING("O_CLOEXEC Not supported",0);
     //Result |= O_CLOEXEC;
   }
 

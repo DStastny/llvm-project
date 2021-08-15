@@ -250,6 +250,8 @@ static bool printSymbolizedStackTrace(StringRef Argv0, void **StackTrace,
 #ifdef LLVM_ON_UNIX
 #if defined(__amigaos__)
 #include "AmigaOS/Signals.inc"
+#else
+#include "Unix/Signals.inc"
 #endif
 #endif
 #ifdef _WIN32
