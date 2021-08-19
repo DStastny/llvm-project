@@ -24,10 +24,10 @@
 
 
 
-#define FUNCENTER DPRINTF("Method %s() entered\n", __func__)
-#define FUNCEXIT  DPRINTF("Method %s() exited\n", __func__)
-
-#ifdef DEBUG
+#define FUNCENTER DPRINTF("Enter: %s:%ld:%s\n", __FILE__, __LINE__, __func__)
+#define FUNCEXIT  DPRINTF(" Exit: %s:%ld:%s\n", __FILE__, __LINE__, __func__)
+#define ADEBUG
+#ifdef ADEBUG
 #define TASKID (APTR)  ::IExec->FindTask(0)
 #define DPRINTF(errMsg, ...) ::IExec->DebugPrintF("Task : %p ", TASKID); ::IExec->DebugPrintF(errMsg, ##__VA_ARGS__); 
 #else
