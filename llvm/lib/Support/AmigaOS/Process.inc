@@ -32,6 +32,14 @@
 //===          is guaranteed to work on *all* AmigaOS variants.
 //===----------------------------------------------------------------------===//
 
+/*
+    Enable Slab Allocator in Clib2 to align to bytes
+*/
+
+unsigned long __slab_max_size = 4096;
+
+
+
 namespace llvm {
 namespace sys {
 
