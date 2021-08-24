@@ -641,7 +641,7 @@ static Error loadDylibs(Session &S) {
 
 Expected<std::unique_ptr<ExecutorProcessControl>>
 LLVMJITLinkRemoteExecutorProcessControl::LaunchExecutor() {
-#if !defined(LLVM_ON_UNIX) || defined(__amigaos__)
+#if !defined(LLVM_ON_UNIX) || defined(__amigaos4__)
   // FIXME: Add support for Windows.
   return make_error<StringError>("-" + OutOfProcessExecutor.ArgStr +
                                      " not supported on non-unix platforms",
@@ -722,7 +722,7 @@ LLVMJITLinkRemoteExecutorProcessControl::LaunchExecutor() {
 #endif
 }
 
-#if defined(LLVM_ON_UNIX) && !defined(__amigaos__)
+#if defined(LLVM_ON_UNIX) && !defined(__amigaos4__)
 static Error createTCPSocketError(Twine Details) {
   return make_error<StringError>(
       formatv("Failed to connect TCP socket '{0}': {1}",
@@ -770,7 +770,7 @@ static Expected<int> connectTCPSocket(std::string Host, std::string PortStr) {
 
 Expected<std::unique_ptr<ExecutorProcessControl>>
 LLVMJITLinkRemoteExecutorProcessControl::ConnectToExecutor() {
-#if !defined(LLVM_ON_UNIX) || defined(__amigaos__)
+#if !defined(LLVM_ON_UNIX) || defined(__amigaos4__)
   // FIXME: Add TCP support for Windows.
   return make_error<StringError>("-" + OutOfProcessExecutorConnect.ArgStr +
                                      " not supported on non-unix platforms",

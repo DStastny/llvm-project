@@ -50,7 +50,7 @@ void printErrorAndExit(Twine ErrMsg) {
 }
 
 int openListener(std::string Host, std::string PortStr) {
-#if !defined(LLVM_ON_UNIX) || defined(__amigaos__)
+#if !defined(LLVM_ON_UNIX) || defined(__amigaos4__)
   // FIXME: Add TCP support for Windows.
   printErrorAndExit("listen option not supported");
   return 0;

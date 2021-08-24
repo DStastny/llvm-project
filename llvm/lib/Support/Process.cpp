@@ -113,7 +113,7 @@ bool Process::AreCoreFilesPrevented() { return coreFilesPrevented; }
 
 // Include the platform-specific parts of this class.
 #ifdef LLVM_ON_UNIX
-#ifdef __amigaos__
+#ifdef __amigaos4__
   #include "AmigaOS/Process.inc"
 #else
   #include "Unix/Process.inc"

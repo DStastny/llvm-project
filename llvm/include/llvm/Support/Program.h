@@ -37,7 +37,7 @@ namespace sys {
 #if defined(_WIN32) 
   typedef unsigned long procid_t; // Must match the type of DWORD on Windows.
   typedef void *process_t;        // Must match the type of HANDLE on Windows.
-#elif defined(__amigaos__)  
+#elif defined(__amigaos4__)  
   typedef unsigned long procid_t; // Must match the type of uint32 on AmigaOS.
   typedef void *process_t;        // Must match the type of APTR on AmigaOS.
 #else
@@ -58,7 +58,7 @@ namespace sys {
     ProcessInfo();
   };
 
-#if defined(__amigaos__)  
+#if defined(__amigaos4__)  
     // Must be used to free Process if not Waited
     int CloseProcess(ProcessInfo &PI);
 #endif

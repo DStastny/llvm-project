@@ -21,7 +21,7 @@
 
 // Include the platform-specific parts of this class.
 #ifdef LLVM_ON_UNIX
-#if defined(__amigaos__)
+#if defined(__amigaos4__)
 #include "AmigaOS/Memory.inc"
 #else
 #include "Unix/Memory.inc"

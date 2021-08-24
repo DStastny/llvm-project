@@ -123,7 +123,7 @@ static llvm::ManagedStatic<llvm::sys::SmartMutex<true>> SymbolsMutex;
 #include "Windows/DynamicLibrary.inc"
 
 #else
-#if defined(__amigaos__)
+#if defined(__amigaos4__)
 #include "AmigaOS/DynamicLibrary.inc"
 #else
 #include "Unix/DynamicLibrary.inc"

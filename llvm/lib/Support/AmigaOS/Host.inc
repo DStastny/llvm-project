@@ -21,13 +21,11 @@ static std::string updateTripleOSVersion(std::string Triple) {
 }
 
 std::string sys::getDefaultTargetTriple() {
-  const char *Triple = LLVM_DEFAULT_TARGET_TRIPLE;
-
+  const char *Triple = LLVM_DEFAULT_TARGET_TRIPLE;  
   // Override the default target with an environment variable named by LLVM_TARGET_TRIPLE_ENV.
 #if defined(LLVM_TARGET_TRIPLE_ENV)
   if (const char *EnvTriple = std::getenv(LLVM_TARGET_TRIPLE_ENV))
     Triple = EnvTriple;
-#endif
-
+#endif  
   return Triple;
 }

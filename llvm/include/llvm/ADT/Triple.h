@@ -199,6 +199,7 @@ public:
     Hurd,       // GNU/Hurd
     WASI,       // Experimental WebAssembly OS
     Emscripten,
+    AmigaOS4,
     LastOSType = Emscripten
   };
   enum EnvironmentType {
@@ -537,6 +538,12 @@ public:
   bool isOSContiki() const {
     return getOS() == Triple::Contiki;
   }
+
+    /// Tests whether the OS is AmigaOS4.
+  bool isOSAmigaOS() const {
+    return getOS() == Triple::AmigaOS4;
+  }
+
 
   /// Tests whether the OS is Haiku.
   bool isOSHaiku() const {

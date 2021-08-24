@@ -21,7 +21,7 @@
 #include "llvm/Support/raw_ostream.h"
 #ifdef _WIN32
 #include "llvm/Support/Windows/WindowsSupport.h"
-#elif defined(__amigaos__)
+#elif defined(__amigaos4__)
 #include "AmigaOS/AmigaOS.h"
 #else
 #include "Unix/Unix.h"
@@ -78,7 +78,7 @@ std::error_code llvm::getRandomBytes(void *Buffer, size_t Size) {
   }
   return std::error_code(GetLastError(), std::system_category());
 #else
-#if defined(__amigaos__)
+#if defined(__amigaos4__)
   int Fd = open("RANDOM:", O_RDONLY);
 #else
   int Fd = open("/dev/urandom", O_RDONLY);

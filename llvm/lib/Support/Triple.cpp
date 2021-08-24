@@ -191,6 +191,7 @@ StringRef Triple::getOSTypeName(OSType Kind) {
   case AIX: return "aix";
   case AMDHSA: return "amdhsa";
   case AMDPAL: return "amdpal";
+  case AmigaOS4: return "amigaos";
   case Ananas: return "ananas";
   case CUDA: return "cuda";
   case CloudABI: return "cloudabi";
@@ -538,6 +539,7 @@ static Triple::OSType parseOS(StringRef OSName) {
     .StartsWith("hurd", Triple::Hurd)
     .StartsWith("wasi", Triple::WASI)
     .StartsWith("emscripten", Triple::Emscripten)
+    .StartsWith("amigaos", Triple::AmigaOS4)
     .Default(Triple::UnknownOS);
 }
 

@@ -76,6 +76,8 @@
 #endif
 
 
+#include "llvm/Support/AmigaOS/AmigaOSSupport.h"
+
 using namespace llvm;
 
 static codegen::RegisterCodeGenFlags CGF;
@@ -424,6 +426,7 @@ void disallowOrcOptions();
 // main Driver function
 //
 int main(int argc, char **argv, char * const *envp) {
+  DWARNING("Startup\n", 0);
   InitLLVM X(argc, argv);
   if (argc > 1)
     ExitOnErr.setBanner(std::string(argv[0]) + ": ");
@@ -471,6 +474,9 @@ int main(int argc, char **argv, char * const *envp) {
   }
 
   std::string ErrorMsg;
+
+DWARNING("Module:gettargetTriple()=%s\n", Owner->getTargetTriple());
+
   EngineBuilder builder(std::move(Owner));
   builder.setMArch(codegen::getMArch());
   builder.setMCPU(codegen::getCPUStr());
@@ -836,12 +842,12 @@ int runOrcJIT(const char *ProgName) {
   // Parse the main module.
   orc::ThreadSafeContext TSCtx(std::make_unique<LLVMContext>());
   auto MainModule = ExitOnErr(loadModule(InputFile, TSCtx));
-
   // Get TargetTriple and DataLayout from the main module if they're explicitly
   // set.
   Optional<Triple> TT;
   Optional<DataLayout> DL;
   MainModule.withModuleDo([&](Module &M) {
+      DWARNING("MainModule:gettargetTriple()=%s\n", M.getTargetTriple().c_str());      
       if (!M.getTargetTriple().empty())
         TT = Triple(M.getTargetTriple());
       if (!M.getDataLayout().isDefault())
@@ -1097,7 +1103,7 @@ void disallowOrcOptions() {
 }
 
 std::unique_ptr<orc::shared::FDRawByteChannel> launchRemote() {
-#if !defined(LLVM_ON_UNIX) || defined(__amigaos__)
+#if !defined(LLVM_ON_UNIX) || defined(__amigaos4__)
   llvm_unreachable("launchRemote not supported on non-Unix platforms");
 #else
   int PipeFD[2][2];

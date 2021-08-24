@@ -331,7 +331,7 @@ static void uninstallExceptionOrSignalHandlers() {
   }
 }
 
-#elif defined(__amigaos__)
+#elif defined(__amigaos4__)
 #include "llvm/Support/AmigaOS/AmigaOSSupport.h"
 static void installExceptionOrSignalHandlers() {
   NOTIMPLEMENTED;
@@ -342,7 +342,7 @@ static void uninstallExceptionOrSignalHandlers() {
 }
 
 
-#else // !_WIN32 !__amigaos__
+#else // !_WIN32 !__amigaos4__
 
 // Generic POSIX implementation.
 //
@@ -466,7 +466,7 @@ bool CrashRecoveryContext::throwIfCrash(int RetCode) {
   if (Code != 0xC && Code != 8)
     return false;
   ::RaiseException(RetCode, 0, 0, NULL);
-#elif defined(__amigaos__)  
+#elif defined(__amigaos4__)  
   NOTIMPLEMENTED;
 #else
   // On Unix, signals are represented by return codes of 128 or higher.
