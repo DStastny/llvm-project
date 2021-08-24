@@ -6,6 +6,7 @@
 // ambiguous. Asan should ignore such variable and program must not fail.
 
 // REQUIRES: aarch64-target-arch
+// REQUIRES: stable-runtime
 
 #include <stdlib.h>
 

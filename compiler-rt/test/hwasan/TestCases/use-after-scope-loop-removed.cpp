@@ -4,6 +4,7 @@
 // RUN:     not %run %t 2>&1 | FileCheck %s
 
 // REQUIRES: aarch64-target-arch
+// REQUIRES: stable-runtime
 
 #include <stdlib.h>
 

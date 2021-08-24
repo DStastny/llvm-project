@@ -133,6 +133,19 @@ def STB_FAR : PseudoInstARC<(outs), (ins GPR32:$dst, MEMrlimm:$addr),
                              "STB_FAR $dst, $addr",
                              [(truncstorei8 GPR32:$dst, AddrModeFar:$addr)]>;
 
+// TODO: Add `Requires<[HasBitScan]>` predicate to these when available.
+let Defs = [STATUS32] in {
+  def CTLZ : PseudoInstARC<(outs GPR32:$A),
+                           (ins GPR32:$B),
+                           "error.fls $A, $B",
+                           [(set GPR32:$A, (ctlz i32:$B))]>;
+
+  def CTTZ : PseudoInstARC<(outs GPR32:$A),
+                           (ins GPR32:$B),
+                           "error.ffs $A, $B",
+                           [(set GPR32:$A, (cttz i32:$B))]>;
+}
+
 //===----------------------------------------------------------------------===//
 // Instruction Generation multiclasses.
 // Generate many variants of a single instruction with a single defining
@@ -257,6 +270,19 @@ multiclass MultiPat<SDPatternOperator InFrag,
   def _rrlimm : Pat<(InFrag i32:$B, imm32:$LImm), (RRLImm i32:$B, imm32:$LImm)>;
 }
 
+// NOTE: This could be specialized later with a custom `PrintMethod` for
+//       displaying the aux register name. E.g. `[%count0]` instead of [33].
+def AuxReg : Operand<i32>;
+
+def LR_rs12 : F32_SOP_RS12<0b00100, 0b101010, 0,
+                           (outs GPR32:$B), (ins AuxReg:$C),
+                           "lr\t$B, [$C]", []>;
+def LR_ru6 : F32_SOP_RU6<0b00100, 0b101010, 0,
+                         (outs GPR32:$B), (ins AuxReg:$C),
+                         "lr\t$B, [$C]", []>;
+
+def: Pat<(i32 readcyclecounter), (LR_rs12 0x21) >;  // read timer
+
 // ---------------------------------------------------------------------------
 // Instruction definitions and patterns for 3 operand binary instructions.
 // ---------------------------------------------------------------------------
@@ -306,6 +332,7 @@ defm SEXB : ArcUnaryGEN4Inst<0b000101, "sexb">;
 defm SEXH : ArcUnaryGEN4Inst<0b000110, "sexh">;
 
 // Extension unary instruction definitions.
+defm FFS : ArcUnaryEXT5Inst<0b010010, "ffs">;
 defm FLS : ArcUnaryEXT5Inst<0b010011, "fls">;
 
 let Predicates=[HasNorm] in {

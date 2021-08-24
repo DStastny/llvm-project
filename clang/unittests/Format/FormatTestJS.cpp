@@ -692,6 +692,74 @@ TEST_F(FormatTestJS, FormatsFreestandingFunctions) {
                "  let x = 1;\n"
                "  console.log(x);\n"
                "}\n");
+  EXPECT_EQ("a = function(x) {}\n"
+            "\n"
+            "function f(x) {}",
+            format("a = function(x) {}\n"
+                   "\n"
+                   "function f(x) {}",
+                   getGoogleJSStyleWithColumns(20)));
+}
+
+TEST_F(FormatTestJS, FormatsDecorators) {
+  // No line break after argument decorators.
+  verifyFormat("class A {\n"
+               "  constructor(@arg(DECOR) private arg: Type) {}\n"
+               "}");
+  // Ensure that there is a break before functions, getters and setters.
+  EXPECT_EQ("class A {\n"
+            "  private p = () => {}\n"
+            "\n"
+            "  @decorated('a')\n"
+            "  get f() {\n"
+            "    return result;\n"
+            "  }\n"
+            "}\n"
+            "\n"
+            "class B {\n"
+            "  private p = () => {}\n"
+            "\n"
+            "  @decorated('a')\n"
+            "  set f() {\n"
+            "    return result;\n"
+            "  }\n"
+            "}\n"
+            "\n"
+            "class C {\n"
+            "  private p = () => {}\n"
+            "\n"
+            "  @decorated('a')\n"
+            "  function f() {\n"
+            "    return result;\n"
+            "  }\n"
+            "}",
+            format("class A {\n"
+                   "  private p = () => {}\n"
+                   "\n"
+                   "  @decorated('a')\n"
+                   "  get f() {\n"
+                   "    return result;\n"
+                   "  }\n"
+                   "}\n"
+                   "\n"
+                   "class B {\n"
+                   "  private p = () => {}\n"
+                   "\n"
+                   "  @decorated('a')\n"
+                   "  set f() {\n"
+                   "    return result;\n"
+                   "  }\n"
+                   "}\n"
+                   "\n"
+                   "class C {\n"
+                   "  private p = () => {}\n"
+                   "\n"
+                   "  @decorated('a')\n"
+                   "  function f() {\n"
+                   "    return result;\n"
+                   "  }\n"
+                   "}",
+                   getGoogleJSStyleWithColumns(50)));
 }
 
 TEST_F(FormatTestJS, GeneratorFunctions) {

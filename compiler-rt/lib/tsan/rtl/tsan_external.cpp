@@ -10,8 +10,11 @@
 //
 //===----------------------------------------------------------------------===//
 #include "tsan_rtl.h"
-#include "tsan_interceptors.h"
 #include "sanitizer_common/sanitizer_ptrauth.h"
+
+#if !SANITIZER_GO
+#  include "tsan_interceptors.h"
+#endif
 
 namespace __tsan {
 
@@ -57,16 +60,14 @@ uptr TagFromShadowStackFrame(uptr pc) {
 
 #if !SANITIZER_GO
 
-typedef void(*AccessFunc)(ThreadState *, uptr, uptr, int);
-void ExternalAccess(void *addr, uptr caller_pc, void *tag, AccessFunc access) {
+void ExternalAccess(void *addr, uptr caller_pc, void *tag, AccessType typ) {
   CHECK_LT(tag, atomic_load(&used_tags, memory_order_relaxed));
   ThreadState *thr = cur_thread();
   if (caller_pc) FuncEntry(thr, caller_pc);
   InsertShadowStackFrameForTag(thr, (uptr)tag);
   bool in_ignored_lib;
-  if (!caller_pc || !libignore()->IsIgnored(caller_pc, &in_ignored_lib)) {
-    access(thr, CALLERPC, (uptr)addr, kSizeLog1);
-  }
+  if (!caller_pc || !libignore()->IsIgnored(caller_pc, &in_ignored_lib))
+    MemoryAccess(thr, CALLERPC, (uptr)addr, 1, typ);
   FuncExit(thr);
   if (caller_pc) FuncExit(thr);
 }
@@ -111,12 +112,12 @@ void __tsan_external_assign_tag(void *addr, void *tag) {
 
 SANITIZER_INTERFACE_ATTRIBUTE
 void __tsan_external_read(void *addr, void *caller_pc, void *tag) {
-  ExternalAccess(addr, STRIP_PAC_PC(caller_pc), tag, MemoryRead);
+  ExternalAccess(addr, STRIP_PAC_PC(caller_pc), tag, kAccessRead);
 }
 
 SANITIZER_INTERFACE_ATTRIBUTE
 void __tsan_external_write(void *addr, void *caller_pc, void *tag) {
-  ExternalAccess(addr, STRIP_PAC_PC(caller_pc), tag, MemoryWrite);
+  ExternalAccess(addr, STRIP_PAC_PC(caller_pc), tag, kAccessWrite);
 }
 }  // extern "C"
 

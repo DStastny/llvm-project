@@ -32,7 +32,6 @@
 
 #include "Debug.h"
 #include "get_elf_mach_gfx_name.h"
-#include "machine.h"
 #include "omptargetplugin.h"
 #include "print_tracing.h"
 
@@ -501,17 +500,15 @@ public:
   static const unsigned HardTeamLimit =
       (1 << 16) - 1; // 64K needed to fit in uint16
   static const int DefaultNumTeams = 128;
-  static const int Max_Teams =
-      llvm::omp::AMDGPUGpuGridValues[llvm::omp::GVIDX::GV_Max_Teams];
-  static const int Warp_Size =
-      llvm::omp::AMDGPUGpuGridValues[llvm::omp::GVIDX::GV_Warp_Size];
-  static const int Max_WG_Size =
-      llvm::omp::AMDGPUGpuGridValues[llvm::omp::GVIDX::GV_Max_WG_Size];
+  static const int Max_Teams = llvm::omp::AMDGPUGridValues.GV_Max_Teams;
+  static const int Warp_Size = llvm::omp::AMDGPUGridValues.GV_Warp_Size;
+  static const int Max_WG_Size = llvm::omp::AMDGPUGridValues.GV_Max_WG_Size;
   static const int Default_WG_Size =
-      llvm::omp::AMDGPUGpuGridValues[llvm::omp::GVIDX::GV_Default_WG_Size];
+      llvm::omp::AMDGPUGridValues.GV_Default_WG_Size;
 
   using MemcpyFunc = hsa_status_t (*)(hsa_signal_t, void *, const void *,
-                                      size_t size, hsa_agent_t);
+                                      size_t size, hsa_agent_t,
+                                      hsa_amd_memory_pool_t);
   hsa_status_t freesignalpool_memcpy(void *dest, const void *src, size_t size,
                                      MemcpyFunc Func, int32_t deviceId) {
     hsa_agent_t agent = HSAAgents[deviceId];
@@ -519,7 +516,7 @@ public:
     if (s.handle == 0) {
       return HSA_STATUS_ERROR;
     }
-    hsa_status_t r = Func(s, dest, src, size, agent);
+    hsa_status_t r = Func(s, dest, src, size, agent, HostFineGrainedMemoryPool);
     FreeSignalPool.push(s);
     return r;
   }
@@ -1058,9 +1055,8 @@ int32_t __tgt_rtl_init_device(int device_id) {
     DeviceInfo.WarpSize[device_id] = wavefront_size;
   } else {
     DP("Default wavefront size: %d\n",
-       llvm::omp::AMDGPUGpuGridValues[llvm::omp::GVIDX::GV_Warp_Size]);
-    DeviceInfo.WarpSize[device_id] =
-        llvm::omp::AMDGPUGpuGridValues[llvm::omp::GVIDX::GV_Warp_Size];
+       llvm::omp::AMDGPUGridValues.GV_Warp_Size);
+    DeviceInfo.WarpSize[device_id] = llvm::omp::AMDGPUGridValues.GV_Warp_Size;
   }
 
   // Adjust teams to the env variables
@@ -1417,7 +1413,8 @@ struct device_environment {
 static hsa_status_t atmi_calloc(void **ret_ptr, size_t size, int DeviceId) {
   uint64_t rounded = 4 * ((size + 3) / 4);
   void *ptr;
-  hsa_status_t err = core::Runtime::DeviceMalloc(&ptr, rounded, DeviceId);
+  hsa_amd_memory_pool_t MemoryPool = DeviceInfo.getDeviceMemoryPool(DeviceId);
+  hsa_status_t err = hsa_amd_memory_pool_allocate(MemoryPool, rounded, 0, &ptr);
   if (err != HSA_STATUS_SUCCESS) {
     return err;
   }
@@ -1811,7 +1808,8 @@ void *__tgt_rtl_data_alloc(int device_id, int64_t size, void *, int32_t kind) {
     return NULL;
   }
 
-  hsa_status_t err = core::Runtime::DeviceMalloc(&ptr, size, device_id);
+  hsa_amd_memory_pool_t MemoryPool = DeviceInfo.getDeviceMemoryPool(device_id);
+  hsa_status_t err = hsa_amd_memory_pool_allocate(MemoryPool, size, 0, &ptr);
   DP("Tgt alloc data %ld bytes, (tgt:%016llx).\n", size,
      (long long unsigned)(Elf64_Addr)ptr);
   ptr = (err == HSA_STATUS_SUCCESS) ? ptr : NULL;
