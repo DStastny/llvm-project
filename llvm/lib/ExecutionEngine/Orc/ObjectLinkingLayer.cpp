@@ -108,21 +108,10 @@ private:
 
   ObjectLinkingLayer &ObjLinkingLayer;
   std::unique_ptr<LinkGraph> G;
-#if defined(__amigaos4__)  
-    static std::atomic<uint32_t> Counter;
-#else
   static std::atomic<uint64_t> Counter;
-#endif
+
 };
-
-#if defined(__amigaos4__)  
-    std::atomic<uint32_t> LinkGraphMaterializationUnit::Counter{0};
-#else
-    std::atomic<uint64_t> LinkGraphMaterializationUnit::Counter{0};
-#endif
-
-
-
+  std::atomic<uint64_t> LinkGraphMaterializationUnit::Counter{0};
 } // end anonymous namespace
 
 namespace llvm {
