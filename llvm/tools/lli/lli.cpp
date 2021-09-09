@@ -422,11 +422,25 @@ Error loadDylibs();
 int runOrcJIT(const char *ProgName);
 void disallowOrcOptions();
 
+#if defined(__amigaos__)
+void *getBuiltin(const std::string &name)
+{
+    if (name == "exit")
+        return (void *)&::exit;
+    if (name == "printf")
+        return (void *)&::printf;
+    WithColor::error(errs(), "lli")
+        << "Symbol:" << name << " unknown\n";
+    exit(1);    
+    llvm_unreachable("Unrecognized builtin.");
+}
+#endif 
+
+
 //===----------------------------------------------------------------------===//
 // main Driver function
 //
 int main(int argc, char **argv, char * const *envp) {
-  DWARNING("Startup\n", 0);
   InitLLVM X(argc, argv);
   if (argc > 1)
     ExitOnErr.setBanner(std::string(argv[0]) + ": ");
@@ -475,7 +489,6 @@ int main(int argc, char **argv, char * const *envp) {
 
   std::string ErrorMsg;
 
-DWARNING("Module:gettargetTriple()=%s\n", Owner->getTargetTriple());
 
   EngineBuilder builder(std::move(Owner));
   builder.setMArch(codegen::getMArch());
@@ -608,6 +621,11 @@ DWARNING("Module:gettargetTriple()=%s\n", Owner->getTargetTriple());
     NoLazyCompilation = true;
   }
   EE->DisableLazyCompilation(NoLazyCompilation);
+  
+#if defined(__amigaos4__) 
+  EE->DisableSymbolSearching(true);   
+  EE->InstallLazyFunctionCreator(&getBuiltin);
+#endif
 
   // If the user specifically requested an argv[0] to pass into the program,
   // do it now.
@@ -846,8 +864,7 @@ int runOrcJIT(const char *ProgName) {
   // set.
   Optional<Triple> TT;
   Optional<DataLayout> DL;
-  MainModule.withModuleDo([&](Module &M) {
-      DWARNING("MainModule:gettargetTriple()=%s\n", M.getTargetTriple().c_str());      
+  MainModule.withModuleDo([&](Module &M) {   
       if (!M.getTargetTriple().empty())
         TT = Triple(M.getTargetTriple());
       if (!M.getDataLayout().isDefault())
@@ -860,7 +877,7 @@ int runOrcJIT(const char *ProgName) {
       TT ? orc::JITTargetMachineBuilder(*TT)
          : ExitOnErr(orc::JITTargetMachineBuilder::detectHost()));
 
-  TT = Builder.getJITTargetMachineBuilder()->getTargetTriple();
+  TT = Builder.getJITTargetMachineBuilder()->getTargetTriple();     
   if (DL)
     Builder.setDataLayout(DL);
 

@@ -35,6 +35,8 @@
 #include <sys/stat.h>
 #include <dlfcn.h>
 
+#include "llvm/Support/AmigaOS/AmigaOSSupport.h"
+
 using namespace llvm;
 
 
@@ -197,11 +199,13 @@ static void RegisterHandlers() { // Not signal-safe.
   // The mutex prevents other threads from registering handlers while we're
   // doing it. We also have to protect the handlers and their count because
   // a signal handler could fire while we're registeting handlers.
+  FUNCENTER;
   static ManagedStatic<sys::SmartMutex<true>> SignalHandlerRegistrationMutex;
   sys::SmartScopedLock<true> Guard(*SignalHandlerRegistrationMutex);
 
   // If the handlers are already registered, we're done.
   if (NumRegisteredSignals.load() != 0)
+    FUNCEXIT;
     return;
 
 
@@ -235,18 +239,22 @@ static void RegisterHandlers() { // Not signal-safe.
  //   registerHandler(SIGPIPE, SignalKind::IsKill);
   //for (auto S : InfoSigs)
     //registerHandler(S, SignalKind::IsInfo);
+    FUNCEXIT;
 }
 
 void sys::unregisterHandlers() {
+  FUNCENTER;
   // Restore all of the signal handlers to how they were before we showed up.
   for (unsigned i = 0, e = NumRegisteredSignals.load(); i != e; ++i) {
       signal(RegisteredSignalInfo[i].SigNo, RegisteredSignalInfo[i].SA);      
     --NumRegisteredSignals;
   }
+  FUNCEXIT;
 }
 
 /// Process the FilesToRemove list.
 static void RemoveFilesToRemove() {
+    
   FileToRemoveList::removeAllFiles(FilesToRemove);
 }
 
@@ -308,49 +316,65 @@ static RETSIGTYPE SignalHandler(int Sig) {
 }
 
 static RETSIGTYPE InfoSignalHandler(int Sig) {
+  FUNCENTER;
   SaveAndRestore<int> SaveErrnoDuringASignalHandler(errno);
   if (SignalHandlerFunctionType CurrentInfoFunction = InfoSignalFunction)
     CurrentInfoFunction();
+  FUNCEXIT;
 }
 
 void llvm::sys::RunInterruptHandlers() {
+  FUNCENTER;
   RemoveFilesToRemove();
+  FUNCEXIT;
 }
 
 void llvm::sys::SetInterruptFunction(void (*IF)()) {
+  FUNCENTER;
   InterruptFunction.exchange(IF);
   RegisterHandlers();
+  FUNCEXIT;
 }
 
 void llvm::sys::SetInfoSignalFunction(void (*Handler)()) {
+  FUNCENTER;
   InfoSignalFunction.exchange(Handler);
   RegisterHandlers();
+  FUNCEXIT;
 }
 
 void llvm::sys::SetOneShotPipeSignalFunction(void (*Handler)()) {
+  FUNCENTER;
   OneShotPipeSignalFunction.exchange(Handler);
   RegisterHandlers();
+  FUNCEXIT;
 }
 
 void llvm::sys::DefaultOneShotPipeSignalHandler() {
   // Send a special return code that drivers can check for, from sysexits.h.
+  FUNCENTER;
+  FUNCEXIT;
   exit(EX_IOERR);
 }
 
 // The public API
 bool llvm::sys::RemoveFileOnSignal(StringRef Filename,
                                    std::string* ErrMsg) {
+  FUNCENTER;
   // Ensure that cleanup will occur as soon as one file is added.
   static ManagedStatic<FilesToRemoveCleanup> FilesToRemoveCleanup;
   *FilesToRemoveCleanup;
   FileToRemoveList::insert(FilesToRemove, Filename.str());
   RegisterHandlers();
+  FUNCEXIT;
   return false;
 }
 
 // The public API
 void llvm::sys::DontRemoveFileOnSignal(StringRef Filename) {
+  FUNCENTER;
   FileToRemoveList::erase(FilesToRemove, Filename.str());
+  FUNCEXIT;
 }
 
 /// Add a function to be called when a signal is delivered to the process. The
@@ -358,8 +382,10 @@ void llvm::sys::DontRemoveFileOnSignal(StringRef Filename) {
 /// handler it is.
 void llvm::sys::AddSignalHandler(sys::SignalHandlerCallback FnPtr,
                                  void *Cookie) { // Signal-safe.
+  FUNCENTER;                                 
   insertSignalHandler(FnPtr, Cookie);
   RegisterHandlers();
+  FUNCEXIT;
 }
 
 // In the case of a program crash or fault, print out a stack trace so that the
@@ -381,7 +407,9 @@ void llvm::sys::PrintStackTrace(raw_ostream &OS, int Depth) {
 }
 
 static void PrintStackTraceSignalHandler(void *) {
+  FUNCENTER;
   sys::PrintStackTrace(llvm::errs());
+  FUNCEXIT;
 }
 
 void llvm::sys::DisableSystemDialogsOnCrash() {}
@@ -390,6 +418,8 @@ void llvm::sys::DisableSystemDialogsOnCrash() {}
 /// process, print a stack trace and then exit.
 void llvm::sys::PrintStackTraceOnErrorSignal(StringRef Argv0,
                                              bool DisableCrashReporting) {
-  ::Argv0 = Argv0;
+  FUNCENTER;                                                 
+  ::Argv0 = Argv0;  
   AddSignalHandler(PrintStackTraceSignalHandler, nullptr);
+  FUNCEXIT;
 }

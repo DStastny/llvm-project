@@ -778,9 +778,12 @@ void RuntimeDyldELF::resolvePPC32Relocation(const SectionEntry &Section,
                                             uint32_t Type, int64_t Addend) {
   uint8_t *LocalAddress = Section.getAddressWithOffset(Offset);
   switch (Type) {
-  default:
-    report_fatal_error("Relocation type not implemented yet!");
+  default: {    
+    std::string err ="Relocation type not implemented yet!";   
+    err+=std::to_string(Type);
+    report_fatal_error(err);
     break;
+  }
   case ELF::R_PPC_ADDR16_LO:
     writeInt16BE(LocalAddress, applyPPClo(Value + Addend));
     break;
@@ -788,8 +791,24 @@ void RuntimeDyldELF::resolvePPC32Relocation(const SectionEntry &Section,
     writeInt16BE(LocalAddress, applyPPChi(Value + Addend));
     break;
   case ELF::R_PPC_ADDR16_HA:
-    writeInt16BE(LocalAddress, applyPPCha(Value + Addend));
+    writeInt16BE(LocalAddress, applyPPCha(Value + Addend));    
     break;
+  case ELF::R_PPC_REL24: {
+    uint64_t FinalAddress = Section.getLoadAddressWithOffset(Offset);
+    int64_t delta = static_cast<int64_t>(Value - FinalAddress + Addend);
+    if (SignExtend64<26>(delta) != delta)
+      llvm_unreachable("Relocation R_PPC_REL24 overflow");
+    // We preserve bits other than LI field, i.e. PO and AA/LK fields.
+    uint32_t Inst = readBytesUnaligned(LocalAddress, 4);
+    writeInt32BE(LocalAddress, (Inst & 0xFC000003) | (delta & 0x03FFFFFC));
+  } break;  
+  case ELF::R_PPC_REL32: {
+    uint64_t FinalAddress = Section.getLoadAddressWithOffset(Offset);
+    int64_t delta = static_cast<int64_t>(Value - FinalAddress + Addend);
+    if (SignExtend64<32>(delta) != delta)
+      llvm_unreachable("Relocation R_PPC_REL32 overflow");
+    writeInt32BE(LocalAddress, delta);
+  } break;
   }
 }
 
