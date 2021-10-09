@@ -21,7 +21,7 @@
 #include "llvm/Support/TargetRegistry.h"
 #include "llvm/Target/TargetMachine.h"
 
-#include "llvm/Support/AmigaOS/AmigaOSSupport.h"
+
 
 using namespace llvm;
 
@@ -43,11 +43,11 @@ TargetMachine *EngineBuilder::selectTarget(const Triple &TargetTriple,
                               StringRef MCPU,
                               const SmallVectorImpl<std::string>& MAttrs) {
 
-DWARNING("selectTarget 1: %s\n", TargetTriple.str().c_str());
+
   Triple TheTriple(TargetTriple);
   if (TheTriple.getTriple().empty())
     TheTriple.setTriple(sys::getProcessTriple());
-DWARNING("selectTarget 2: %s\n", TargetTriple.str().c_str());
+
   // Adjust the triple to match what the user requested.
   const Target *TheTarget = nullptr;
   if (!MArch.empty()) {

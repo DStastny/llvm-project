@@ -55,10 +55,6 @@
 #include "llvm/Target/TargetMachine.h"
 #include "llvm/Transforms/Utils/Cloning.h"
 #include <memory>
-
-#include "llvm/Support/Process.h"
-#include "llvm/Support/AmigaOS/AmigaOSSupport.h"
-
 using namespace llvm;
 
 static codegen::RegisterCodeGenFlags CGF;
@@ -325,33 +321,9 @@ struct LLCDiagnosticHandler : public DiagnosticHandler {
   }
 };
 
-static size_t start;
-
-extern "C" {
-  static void OnExit(void)
-  {
-    size_t end= sys::Process::GetMallocUsage();
-    DWARNING("Memory Usage at end:%lu\n", end);
-    DWARNING("Delta =:%lld\n", (int64)end-(int64)start);
-  }
-
-
-  static void InitDebug(void)
-  {
-      start= sys::Process::GetMallocUsage();
-      DWARNING("Memory Usage at start:%lu\n", start);
-      atexit(OnExit);
-  } 
-
-
-};
-
 // main - Entry point for the llc compiler.
 //
 int main(int argc, char **argv) {
-    InitDebug();
-  
-
   InitLLVM X(argc, argv);
 
   // Enable debug stream buffering.
